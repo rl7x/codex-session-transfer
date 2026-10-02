@@ -58,42 +58,41 @@ struct TransferView: View {
             Text("Destination")
                 .font(.headline)
                 .padding(.top, 4)
-            if let discoveryNote = model.discoveryNote {
-                Text(discoveryNote)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            if model.peers.isEmpty {
-                Text("Looking for other Macs…")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 6) {
-                        ForEach(model.peers) { peer in
-                            Button {
-                                model.togglePeer(peer.id)
-                            } label: {
-                                HStack {
-                                    Image(systemName: model.selectedPeerID == peer.id ? "largecircle.fill.circle" : "circle")
-                                    VStack(alignment: .leading, spacing: 0) {
-                                        Text(peer.name)
-                                        Text(peer.receiving ? "Receiving" : "On the network")
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                    Spacer()
+            Text(destinationSummary)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            if !model.peers.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(model.peers) { peer in
+                        let selected = model.selectedPeerID == peer.id
+                        Button {
+                            model.selectPeer(peer.id)
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: selected ? "largecircle.fill.circle" : "circle")
+                                    .foregroundStyle(selected ? Color.accentColor : Color.secondary)
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(peer.name)
+                                        .foregroundStyle(.primary)
+                                    Text(peer.receiving ? "Receiving" : "App isn't open")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
                                 }
+                                Spacer(minLength: 0)
                             }
-                            .buttonStyle(.plain)
+                            .padding(.vertical, 6)
+                            .padding(.horizontal, 8)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(selected ? Color.accentColor.opacity(0.18) : Color.primary.opacity(0.06))
+                            )
                         }
+                        .buttonStyle(.plain)
                     }
                 }
-                .frame(maxHeight: 140)
             }
-            TextField("Or host:port", text: $model.manualHost)
-                .textFieldStyle(.roundedBorder)
             TextField("Pairing code", text: $model.pairingCode)
                 .textFieldStyle(.roundedBorder)
             Button {
@@ -109,6 +108,19 @@ struct TransferView: View {
             .buttonStyle(.borderedProminent)
             .disabled(model.isBusy || model.sessionID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
+    }
+
+    private var destinationSummary: String {
+        if let discoveryNote = model.discoveryNote, model.peers.isEmpty {
+            return discoveryNote
+        }
+        if model.peers.isEmpty {
+            return "Looking for other Macs…"
+        }
+        if let id = model.selectedPeerID, let peer = model.peers.first(where: { $0.id == id }) {
+            return "Sending to \(peer.name)"
+        }
+        return "Choose a Mac"
     }
 
     private var receiveSection: some View {
