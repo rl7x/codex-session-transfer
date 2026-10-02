@@ -17,7 +17,7 @@ Install the same app on both Macs. macOS will ask for local network access the f
 
 1. On the destination Mac, leave **Receive on this Mac** on. Note the host:port and the six-digit pairing code.
 2. On the source Mac, paste the session id and choose **Look up**. The preview shows which home the session came from, its title, and the rollout size.
-3. Select the other Mac, or enter the host and port shown there (`mac2.local:47655`). Enter the pairing code and choose **Send**.
+3. Other Macs on the network show up on their own. A Mac that is already receiving is selected when it is the only one. Enter the pairing code and choose **Send**. If a Mac does not appear, enter the host and port shown on that Mac.
 4. On the destination Mac, resume it with `codex resume <id>`. If Codex was already open, quit and reopen it so it reloads the thread list.
 
 The session id can be the thread id, a unique thread name, or a rollout filename.

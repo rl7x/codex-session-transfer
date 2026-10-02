@@ -23,8 +23,9 @@ enum MachineIdentity {
 final class TransferModel: ObservableObject {
     @Published var sessionID = ""
     @Published var preview: SessionPreview?
-    @Published var peers: [PeerBrowser.Peer] = []
+    @Published var peers: [DiscoveredMac] = []
     @Published var selectedPeerID: String?
+    @Published var discoveryNote: String?
     @Published var manualHost = ""
     @Published var pairingCode = ""
     @Published var listening = true
@@ -37,14 +38,23 @@ final class TransferModel: ObservableObject {
     private let browser: PeerBrowser
     private let server: TransferServer
     private var listenGeneration = 0
+    private var selectionIsManual = false
 
     init() {
         let name = MachineIdentity.serviceName
-        browser = PeerBrowser(ignoredName: name)
+        browser = PeerBrowser(localNames: MacDiscovery.localNames(
+            serviceName: name,
+            hostName: ProcessInfo.processInfo.hostName
+        ))
         server = TransferServer(serviceName: name)
         browser.onPeers = { [weak self] peers in
             Task { @MainActor in
                 self?.applyPeers(peers)
+            }
+        }
+        browser.onStatus = { [weak self] note in
+            Task { @MainActor in
+                self?.discoveryNote = note
             }
         }
         server.onEvent = { [weak self] event in
@@ -86,11 +96,15 @@ final class TransferModel: ObservableObject {
         }
         let endpoint: NWEndpoint
         if let id = selectedPeerID {
-            guard let resolved = browser.endpoint(for: id) else {
+            if let resolved = browser.endpoint(for: id) {
+                endpoint = resolved
+            } else if let peer = peers.first(where: { $0.id == id }), !peer.receiving {
+                status = "\(peer.name) is on the network, but Codex Session Transfer isn't open there."
+                return
+            } else {
                 status = "That Mac is no longer visible. Choose it again or enter host:port."
                 return
             }
-            endpoint = resolved
         } else if let parsed = HostPort.parse(manualHost), let port = NWEndpoint.Port(rawValue: parsed.port) {
             endpoint = .hostPort(host: NWEndpoint.Host(parsed.host), port: port)
         } else {
@@ -144,6 +158,7 @@ final class TransferModel: ObservableObject {
     }
 
     func togglePeer(_ id: String) {
+        selectionIsManual = true
         selectedPeerID = selectedPeerID == id ? nil : id
     }
 
@@ -161,11 +176,14 @@ final class TransferModel: ObservableObject {
         }
     }
 
-    private func applyPeers(_ peers: [PeerBrowser.Peer]) {
+    private func applyPeers(_ peers: [DiscoveredMac]) {
         self.peers = peers
         if let selectedPeerID, !peers.contains(where: { $0.id == selectedPeerID }) {
             self.selectedPeerID = nil
+            selectionIsManual = false
         }
+        guard !selectionIsManual else { return }
+        selectedPeerID = MacDiscovery.automaticSelection(in: peers)?.id
     }
 
     private func apply(_ event: ServerEvent) {

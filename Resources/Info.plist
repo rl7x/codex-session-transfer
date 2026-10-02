@@ -33,6 +33,7 @@
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_codexsession._tcp</string>
+		<string>_companion-link._tcp</string>
 	</array>
 </dict>
 </plist>

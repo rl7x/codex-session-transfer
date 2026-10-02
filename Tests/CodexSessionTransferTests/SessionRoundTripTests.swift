@@ -226,6 +226,38 @@ final class SessionRoundTripTests: XCTestCase {
     }
 }
 
+final class MacDiscoveryTests: XCTestCase {
+    func testDropsThisMacAndPhonesAndSelectsTheReceiver() {
+        let macs = MacDiscovery.merge(
+            localNames: MacDiscovery.localNames(serviceName: "mbp", hostName: "mbp.local"),
+            receivers: ["mbp", "MacBook Pro"],
+            nearby: ["mbp", "MacBook Pro", "iMac", "Sam's iPad"]
+        )
+        XCTAssertEqual(macs.map(\.name), ["MacBook Pro", "iMac"])
+        XCTAssertEqual(macs.map(\.receiving), [true, false])
+        XCTAssertEqual(MacDiscovery.automaticSelection(in: macs)?.name, "MacBook Pro")
+    }
+
+    func testTwoReceiversStayUnselected() {
+        let macs = MacDiscovery.merge(
+            localNames: ["mbp"],
+            receivers: ["MacBook Pro", "iMac"],
+            nearby: ["MacBook Pro", "iMac"]
+        )
+        XCTAssertNil(MacDiscovery.automaticSelection(in: macs))
+    }
+
+    func testOnlyOtherMacIsSelectedWhenNothingIsReceiving() {
+        let macs = MacDiscovery.merge(
+            localNames: ["mbp"],
+            receivers: [],
+            nearby: ["iMac", "mbp", "iPhone"]
+        )
+        XCTAssertEqual(macs.map(\.name), ["iMac"])
+        XCTAssertEqual(MacDiscovery.automaticSelection(in: macs)?.receiving, false)
+    }
+}
+
 final class ZipAndProtocolTests: XCTestCase {
     func testCRC32KnownVector() {
         XCTAssertEqual(CRC32.hash(Data("123456789".utf8)), 0xCBF43926)

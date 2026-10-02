@@ -58,21 +58,31 @@ struct TransferView: View {
             Text("Destination")
                 .font(.headline)
                 .padding(.top, 4)
-            if model.peers.isEmpty {
-                Text("No other Macs found yet. You can still enter the host and port shown on the receiving Mac.")
+            if let discoveryNote = model.discoveryNote {
+                Text(discoveryNote)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+            }
+            if model.peers.isEmpty {
+                Text("Looking for other Macs…")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 6) {
                         ForEach(model.peers) { peer in
                             Button {
                                 model.togglePeer(peer.id)
                             } label: {
                                 HStack {
                                     Image(systemName: model.selectedPeerID == peer.id ? "largecircle.fill.circle" : "circle")
-                                    Text(peer.name)
+                                    VStack(alignment: .leading, spacing: 0) {
+                                        Text(peer.name)
+                                        Text(peer.receiving ? "Receiving" : "On the network")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
                                     Spacer()
                                 }
                             }
@@ -80,9 +90,9 @@ struct TransferView: View {
                         }
                     }
                 }
-                .frame(maxHeight: 120)
+                .frame(maxHeight: 140)
             }
-            TextField("mac2.local:port", text: $model.manualHost)
+            TextField("Or host:port", text: $model.manualHost)
                 .textFieldStyle(.roundedBorder)
             TextField("Pairing code", text: $model.pairingCode)
                 .textFieldStyle(.roundedBorder)
