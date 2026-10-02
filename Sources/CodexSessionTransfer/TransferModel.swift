@@ -26,7 +26,6 @@ final class TransferModel: ObservableObject {
     @Published var peers: [DiscoveredMac] = []
     @Published var selectedPeerID: String?
     @Published var discoveryNote: String?
-    @Published var manualHost = ""
     @Published var pairingCode = ""
     @Published var listening = true
     @Published var localCode = ""
@@ -94,21 +93,18 @@ final class TransferModel: ObservableObject {
             status = "Enter the pairing code from the other Mac."
             return
         }
+        guard let id = selectedPeerID else {
+            status = peers.isEmpty ? "Still looking for other Macs." : "Choose the Mac to send to."
+            return
+        }
         let endpoint: NWEndpoint
-        if let id = selectedPeerID {
-            if let resolved = browser.endpoint(for: id) {
-                endpoint = resolved
-            } else if let peer = peers.first(where: { $0.id == id }), !peer.receiving {
-                status = "\(peer.name) is on the network, but Codex Session Transfer isn't open there."
-                return
-            } else {
-                status = "That Mac is no longer visible. Choose it again or enter host:port."
-                return
-            }
-        } else if let parsed = HostPort.parse(manualHost), let port = NWEndpoint.Port(rawValue: parsed.port) {
-            endpoint = .hostPort(host: NWEndpoint.Host(parsed.host), port: port)
+        if let resolved = browser.endpoint(for: id) {
+            endpoint = resolved
+        } else if let peer = peers.first(where: { $0.id == id }), !peer.receiving {
+            status = "\(peer.name) is on the network, but Codex Session Transfer isn't open there."
+            return
         } else {
-            status = "Choose a Mac, or enter the host and port shown on the other Mac."
+            status = "That Mac is no longer visible. Choose it again."
             return
         }
 
@@ -157,9 +153,9 @@ final class TransferModel: ObservableObject {
         status = "Pairing code updated."
     }
 
-    func togglePeer(_ id: String) {
+    func selectPeer(_ id: String) {
         selectionIsManual = true
-        selectedPeerID = selectedPeerID == id ? nil : id
+        selectedPeerID = id
     }
 
     func sizeLabel(_ bytes: Int64) -> String {
